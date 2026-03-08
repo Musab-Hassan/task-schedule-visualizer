@@ -1,9 +1,10 @@
 export type Task = {
     id: string;
     executionTime: number;
-    period: number;
-    deadline: number;
     releaseTime: number;
+    period?: number;
+    deadline?: number;
+    isAperiodic?: boolean;
 }
 
 export type SchedulingAlgorithm = {

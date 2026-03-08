@@ -22,6 +22,7 @@
 		period: 10,
 		deadline: 10,
         releaseTime: 0,
+        isAperiodic: false,
 	});
 
 	$effect(() => {
@@ -45,9 +46,10 @@
 			{
 				id: newTask.id,
 				executionTime: newTask.executionTime,
-				period: newTask.period,
-				deadline: newTask.deadline,
+                ...(!newTask.isAperiodic ? { period: newTask.period } : {}),
+                ...(newTask.isAperiodic ? { deadline: newTask.deadline } : {}),
                 releaseTime: newTask.releaseTime || 0,
+                isAperiodic: newTask.isAperiodic || false,
 			},
 		];
 
@@ -57,7 +59,8 @@
 			executionTime: 1,
 			period: 10,
 			deadline: 10,
-            releaseTime: 0
+            releaseTime: 0,
+            isAperiodic: false
 		};
 
 		onTasksChange?.(tasks);
@@ -136,6 +139,19 @@
 						class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
 					/>
 
+					<!-- Task Type Toggle -->
+					<div class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							id="isAperiodic"
+							bind:checked={newTask.isAperiodic}
+							class="w-3 h-3 border border-slate-300 dark:border-slate-600 rounded"
+						/>
+						<label for="isAperiodic" class="text-xs text-slate-600 dark:text-slate-400">
+							Aperiodic Task
+						</label>
+					</div>
+
 					<div class="grid grid-cols-2 gap-2">
 						<div>
                             <!-- Execution Time Input -->
@@ -147,16 +163,18 @@
 								class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
 							/>
 						</div>
-						<div>
-                            <!-- Period Input -->
-							<label class="text-xs text-slate-600 dark:text-slate-400">Period</label>
-							<input
-								type="number"
-								min="1"
-								bind:value={newTask.period}
-								class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
-							/>
-						</div>
+						{#if !newTask.isAperiodic}
+							<div>
+                                <!-- Period Input -->
+								<label class="text-xs text-slate-600 dark:text-slate-400">Period</label>
+								<input
+									type="number"
+									min="1"
+									bind:value={newTask.period}
+									class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+								/>
+							</div>
+						{/if}
 					</div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -166,21 +184,23 @@
                             <label class="text-xs text-slate-600 dark:text-slate-400">Release Time</label>
                             <input
                                 type="number"
-                                min="1"
-                                bind:value={newTask.releaseTime }
+                                min="0"
+                                bind:value={newTask.releaseTime}
                                 class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
                             />
                         </div>
-                        <!-- Deadline Input -->
-                        <div>
-                            <label class="text-xs text-slate-600 dark:text-slate-400">Deadline</label>
-                            <input
-                                type="number"
-                                min="1"
-                                bind:value={newTask.deadline}
-                                class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
-                            />
-                        </div>
+                        {#if newTask.isAperiodic}
+							<!-- Deadline Input for Aperiodic -->
+                            <div>
+                                <label class="text-xs text-slate-600 dark:text-slate-400">Deadline</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    bind:value={newTask.deadline}
+                                    class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+                                />
+                            </div>
+						{/if}
                     </div>
 
                     <!-- Add Button -->
@@ -213,10 +233,20 @@
 							</div>
                             
 							<div class="space-y-0.5 text-slate-600 dark:text-slate-400">
+                                {#if task.isAperiodic}
+                                    <p>Type: <span class="font-mono">Aperiodic</span></p>
+                                {:else}
+                                    <p>Type: <span class="font-mono">Periodic</span></p>
+                                {/if}
+
 								<p>Exec: <span class="font-mono">{task.executionTime}</span></p>
-								<p>Period: <span class="font-mono">{task.period}</span></p>
-								<p>Deadline: <span class="font-mono">{task.deadline}</span></p>
 								<p>Release: <span class="font-mono">{task.releaseTime}</span></p>
+
+                                {#if task.isAperiodic}
+								    <p>Deadline: <span class="font-mono">{task.deadline}</span></p>
+                                {:else}
+                                    <p>Period: <span class="font-mono">{task.period}</span></p>
+                                {/if}
 							</div>
 						</div>
 

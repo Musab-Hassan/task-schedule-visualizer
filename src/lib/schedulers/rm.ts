@@ -4,20 +4,23 @@ export default function RateMonotonic(tasks: Task[], hyperperiod: number): Sched
 	
     const schedule: Schedule = [];
 
+	// Filter to only periodic tasks (exclude aperiodic tasks)
+	const periodicTasks = tasks.filter((task) => !task.isAperiodic && task.period);
+
 	// Track pending execution time for each task instance
 	const pending = new Map<string, number>();
-	tasks.forEach((task) => {
+	periodicTasks.forEach((task) => {
 		pending.set(task.id, 0);
 	});
 
 	for (let time = 0; time < hyperperiod; time++) {
 		// Release new instances of tasks at their release times and period boundaries
-		tasks.forEach((task) => {
+		periodicTasks.forEach((task) => {
 			// Check if this is a release time for the task
 			// First instance: releaseTime
 			// Subsequent instances: releaseTime + k*period
 			const isReleaseTime = time === task.releaseTime || 
-				(time > task.releaseTime && (time - task.releaseTime) % task.period === 0);
+				(time > task.releaseTime && (time - task.releaseTime) % task.period! === 0);
 			
 			if (isReleaseTime) {
 				pending.set(task.id, (pending.get(task.id) ?? 0) + task.executionTime);
@@ -28,11 +31,11 @@ export default function RateMonotonic(tasks: Task[], hyperperiod: number): Sched
 		let minPeriod = Infinity;
 
         // Find highest priority task with pending execution
-		for (const task of tasks) {
+		for (const task of periodicTasks) {
 			const pendingExec = pending.get(task.id) ?? 0;
-			if (pendingExec > 0 && task.period < minPeriod) {
+			if (pendingExec > 0 && task.period! < minPeriod) {
 				selectedTask = task;
-				minPeriod = task.period;
+				minPeriod = task.period!;
 			}
 		}
 

@@ -33,7 +33,15 @@ export function lcm(a: number, b: number): number {
 
 export function calculateHyperperiod(tasks: Task[]): number {
 	if (tasks.length === 0) return 0;
-	return tasks.reduce((acc, task) => lcm(acc, task.period), tasks[0].period);
+	
+	// Get all relevant periods/deadlines from tasks
+	const values = tasks.map((task) => {
+		// Use period for periodic tasks, deadline for aperiodic
+		return task.isAperiodic ? task.deadline : task.period;
+	});
+	
+	// Calculate LCM of all values
+	return values.reduce((acc, val) => lcm(acc ?? 0, val ?? 0), values[0]) ?? 0;
 }
 
 
