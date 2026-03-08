@@ -5,13 +5,18 @@ export type Task = {
     deadline: number;
 }
 
+export type SchedulingAlgorithm = {
+    id: string;
+    name: string;
+};
+
 export type Schedule = {
     time: number;
-    taskId: string | null; // null represents idle time
+    taskId: string | null; // null means idle time
 }[];
 
 export type ScheduleResult = {
     schedule: Schedule;
     isSchedulable: boolean;
-    utilization: number
+    utilization: number;
 }
