@@ -3,6 +3,10 @@
 	import ScheduleTimeline from '$lib/components/ScheduleTimeline.svelte';
 	import type { Task, Schedule, SchedulingAlgorithm } from '$lib/types';
 	import { algorithmList, assignColorsToTasks, calculateHyperperiod } from '$lib/utils';
+    
+    import EarliestDeadlineFirst from '$lib/schedulers/edf';
+    import RateMonotonic from '$lib/schedulers/rm';
+    import LeastLaxityFirst from '$lib/schedulers/llf';
 
 	let tasks: Task[] = $state([]);
 	let selectedAlgorithm: SchedulingAlgorithm = $state(algorithmList[0]);
@@ -16,23 +20,20 @@
 			return [];
 		}
 
-		// FIFO scheduling logic for testing
-		// TODO: Replace this with the actual scheduling algorithms (EDF, LLF, RM)
-		const result: Schedule = [];
-		let time = 0;
-		while (time < hyperperiod) {
-			const task = tasks.find((t) => time % t.period === 0);
-			if (task) {
-				for (let i = 0; i < task.executionTime; i++) {
-					result.push({ time: time + i, taskId: task.id });
-				}
-				time += task.executionTime;
-			} else {
-				result.push({ time, taskId: null }); // Idle slot
-				time++;
-			}
-		}
-		return result;
+        let result: Schedule = [];
+        switch (selectedAlgorithm.id) {
+            case 'edf':
+                result = EarliestDeadlineFirst(tasks, hyperperiod);
+                break;
+            case 'rm':
+                result = RateMonotonic(tasks, hyperperiod);
+                break;
+            case 'llf':
+                result = LeastLaxityFirst(tasks, hyperperiod);
+                break;
+        }
+
+        return result;
 	});
 
 	// Update colours when tasks change
