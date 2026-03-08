@@ -3,6 +3,7 @@ export type Task = {
     executionTime: number;
     period: number;
     deadline: number;
+    releaseTime: number;
 }
 
 export type SchedulingAlgorithm = {

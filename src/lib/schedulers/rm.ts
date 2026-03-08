@@ -11,9 +11,15 @@ export default function RateMonotonic(tasks: Task[], hyperperiod: number): Sched
 	});
 
 	for (let time = 0; time < hyperperiod; time++) {
-		// Release new instances of tasks at their period boundaries
+		// Release new instances of tasks at their release times and period boundaries
 		tasks.forEach((task) => {
-			if (time % task.period === 0) {
+			// Check if this is a release time for the task
+			// First instance: releaseTime
+			// Subsequent instances: releaseTime + k*period
+			const isReleaseTime = time === task.releaseTime || 
+				(time > task.releaseTime && (time - task.releaseTime) % task.period === 0);
+			
+			if (isReleaseTime) {
 				pending.set(task.id, (pending.get(task.id) ?? 0) + task.executionTime);
 			}
 		});

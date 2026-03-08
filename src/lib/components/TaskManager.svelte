@@ -21,6 +21,7 @@
 		executionTime: 1,
 		period: 10,
 		deadline: 10,
+        releaseTime: 0,
 	});
 
 	$effect(() => {
@@ -46,6 +47,7 @@
 				executionTime: newTask.executionTime,
 				period: newTask.period,
 				deadline: newTask.deadline,
+                releaseTime: newTask.releaseTime || 0,
 			},
 		];
 
@@ -55,6 +57,7 @@
 			executionTime: 1,
 			period: 10,
 			deadline: 10,
+            releaseTime: 0
 		};
 
 		onTasksChange?.(tasks);
@@ -156,16 +159,29 @@
 						</div>
 					</div>
 
-                    <!-- Deadline Input -->
-					<div>
-						<label class="text-xs text-slate-600 dark:text-slate-400">Deadline</label>
-						<input
-							type="number"
-							min="1"
-							bind:value={newTask.deadline}
-							class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
-						/>
-					</div>
+                    <div class="grid grid-cols-2 gap-2">
+
+                        <!-- Release Time Input -->
+                        <div>
+                            <label class="text-xs text-slate-600 dark:text-slate-400">Release Time</label>
+                            <input
+                                type="number"
+                                min="1"
+                                bind:value={newTask.releaseTime }
+                                class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+                            />
+                        </div>
+                        <!-- Deadline Input -->
+                        <div>
+                            <label class="text-xs text-slate-600 dark:text-slate-400">Deadline</label>
+                            <input
+                                type="number"
+                                min="1"
+                                bind:value={newTask.deadline}
+                                class="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+                            />
+                        </div>
+                    </div>
 
                     <!-- Add Button -->
 					<button
@@ -200,6 +216,7 @@
 								<p>Exec: <span class="font-mono">{task.executionTime}</span></p>
 								<p>Period: <span class="font-mono">{task.period}</span></p>
 								<p>Deadline: <span class="font-mono">{task.deadline}</span></p>
+								<p>Release: <span class="font-mono">{task.releaseTime}</span></p>
 							</div>
 						</div>
 
