@@ -1,34 +1,51 @@
 import type { Task, Schedule } from "$lib/types";
 
+// create a local task type so optional release time and deadline can be used safely
+type LlfTask = Task & {
+    releaseTime?: number;
+    deadline?: number;
+    isAperiodic?: boolean;
+};
+
 // create a type for each released job instance
 type Job = {
-	taskId: string;
-	releaseTime: number;
-	absoluteDeadline: number;
-	remainingExecution: number;
-	taskOrder: number;
+    taskId: string;
+    releaseTime: number;
+    absoluteDeadline: number;
+    remainingExecution: number;
+    taskOrder: number;
 };
 
 export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
+
     const schedule: Schedule = [];
-    const activeJobs: Job[] = [];
-    const releasedTasks = new Set<string>();
 
-    let deadlineMissed = false;
-    let missedTaskId: string | null = null;
-    let missedAtTime: number | null = null;
-    let currentTaskId: string | null = null;
+    const llfTasks = tasks as LlfTask[]; // cast the tasks so optional release time and deadline fields can be accessed
 
-    // Main scheduling loop
+    const activeJobs: Job[] = []; // store all active released jobs here
+
+    const releasedTasks = new Set<string>(); // track which aperiodic tasks have already been released
+
+    let deadlineMissed = false; // flag to track if any deadline is missed
+
+    let missedTaskId: string | null = null; // store the ID of the task that missed its deadline
+
+    let missedAtTime: number | null = null; // store the time at which the deadline was missed
+
+    let currentTaskId: string | null = null; // store the currently running task for tie-breaking
+
+    // Main loop to generate the schedule (logic to be implemented)
     for (let time = 0; time < hyperperiod; time++) {
-        // Release new jobs for any task that arrives at the current time
-        tasks.forEach((task, index) => {
+        // Modify schedule to include the task that should be executed at time time based on scheduling
+
+        // release new jobs for any task that arrives at the current time
+        llfTasks.forEach((task, index) => {
             const releaseOffset = task.releaseTime ?? 0; // use 0 if the task does not define a release time
 
             const isAperiodicTask = task.isAperiodic === true || task.period === undefined; // treat the task as aperiodic if explicitly marked or if it has no period
 
             // handle aperiodic tasks by releasing them only once
-            if(isAperiodicTask) {
+            if (isAperiodicTask) {
                 const absoluteDeadline = task.deadline; // use deadline as an absolute deadline for aperiodic tasks
 
                 if (absoluteDeadline === undefined) {
@@ -36,7 +53,7 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
                 }
 
                 // release a new job if this aperiodic task arrives now
-                if(time === releaseOffset && !releasedTasks.has(task.id)) {
+                if (time === releaseOffset && !releasedTasks.has(task.id)) {
                     // add released job to active jobs list
                     activeJobs.push({
                         taskId: task.id,
@@ -65,7 +82,7 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
                 }
 
                 // release a new job if this periodic task arrives now
-                if(time >= releaseOffset && (time - releaseOffset) % period === 0) {
+                if (time >= releaseOffset && (time - releaseOffset) % period === 0) {
                     // add released job to active jobs list
                     activeJobs.push({
                         taskId: task.id,
@@ -79,11 +96,11 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
         });
 
         // check whether any active unfinished job has already missed its deadline 
-        for(const job of activeJobs) {
+        for (const job of activeJobs) {
             // a miss happens if the current time has reached or passed the deadline and the job is still unfinished
-            if(job.remainingExecution > 0 && time >= job.absoluteDeadline) {
+            if (job.remainingExecution > 0 && time >= job.absoluteDeadline) {
                 // store the first missed deadline only once
-                if(!deadlineMissed) {
+                if (!deadlineMissed) {
                     deadlineMissed = true;
                     missedTaskId = job.taskId;
                     missedAtTime = time;
@@ -96,43 +113,43 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
         let minLaxity = Infinity; // start with infinity so any real laxity value will be smaller
 
         // search for the ready job with the smallest laxity to execute at this time slot
-        for(const job of activeJobs) {
+        for (const job of activeJobs) {
             // skip finished jobs
-            if(job.remainingExecution <= 0) {
+            if (job.remainingExecution <= 0) {
                 continue;
             }
 
             const laxity = job.absoluteDeadline - time - job.remainingExecution; // calculate laxity for this job
 
             // select this job if it has smaller laxity than the current minimum
-            if(laxity < minLaxity) {
+            if (laxity < minLaxity) {
                 selectedJob = job;
                 minLaxity = laxity;
             }
 
             // tie-breaking: if laxity is the same, select the job of the task that appears earlier in the input list
-            else if(laxity === minLaxity && selectedJob !== null) {
+            else if (laxity === minLaxity && selectedJob !== null) {
                 // prefer keeping the currently running task if it is tied
-                if(job.taskId === currentTaskId && selectedJob.taskId !== currentTaskId) {
+                if (job.taskId === currentTaskId && selectedJob.taskId !== currentTaskId) {
                     selectedJob = job;
                 }
 
                 // if neither or both are the current task, prefer the earlier absolute deadline 
-                else if(
+                else if (
                     (job.taskId === currentTaskId && selectedJob.taskId === currentTaskId) ||
                     (job.taskId !== currentTaskId && selectedJob.taskId !== currentTaskId)
                 ) {
-                    if(job.absoluteDeadline < selectedJob.absoluteDeadline) {
+                    if (job.absoluteDeadline < selectedJob.absoluteDeadline) {
                         selectedJob = job;
                     }
 
                     // if deadlines match, prefer the task that appears earlier in the input list
-                    else if(job.absoluteDeadline === selectedJob.absoluteDeadline && job.releaseTime < selectedJob.releaseTime) {
+                    else if (job.absoluteDeadline === selectedJob.absoluteDeadline && job.releaseTime < selectedJob.releaseTime) {
                         selectedJob = job;
                     }
 
                     // if it is still tied, prefer the task that appeared earlier in the task input list
-                    else if(job.absoluteDeadline === selectedJob.absoluteDeadline && job.releaseTime === selectedJob.releaseTime && job.taskOrder < selectedJob.taskOrder) {
+                    else if (job.absoluteDeadline === selectedJob.absoluteDeadline && job.releaseTime === selectedJob.releaseTime && job.taskOrder < selectedJob.taskOrder) {
                         selectedJob = job;
                     }
                 }
@@ -140,7 +157,7 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
         }
 
         // run the selected job if one exists
-        if(selectedJob) {
+        if (selectedJob) {
             //record that this task runs at the current time
             schedule.push({
                 time,
@@ -165,16 +182,16 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
         }
 
         // remove finished jobs from the active jobs list to keep it clean
-        for(let i = activeJobs.length - 1; i >= 0; i--) {
+        for (let i = activeJobs.length - 1; i >= 0; i--) {
             // remove a job once its remaining execution time reaches 0 or below
-            if(activeJobs[i].remainingExecution <= 0) {
+            if (activeJobs[i].remainingExecution <= 0) {
                 activeJobs.splice(i, 1);
             }
         }
     }
 
     // optionally print missed deadline information for debugging
-    if(deadlineMissed) {
+    if (deadlineMissed) {
         console.warn(`Deadline missed for task ${missedTaskId} at time ${missedAtTime}`);
     }
 
