@@ -19,15 +19,11 @@ type Job = {
 export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number): ScheduleResult {
 
     const schedule: Schedule = [];
-
     const llfTasks = tasks as LlfTask[]; // cast the tasks so optional release time and deadline fields can be accessed
-
-    const activeJobs: Job[] = []; // store all active released jobs here
-
+    const activeJobs: Job[] = [];
     const releasedTasks = new Set<string>(); // track which aperiodic tasks have already been released
-
-    let deadlineMissed = false; // flag to track if any deadline is missed
-
+    
+    let deadlineMissed = false;
     let currentTaskId: string | null = null; // store the currently running task for tie-breaking
 
     // Main loop to generate the schedule (logic to be implemented)
