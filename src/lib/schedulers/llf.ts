@@ -1,12 +1,5 @@
 import type { Task, Schedule } from "$lib/types";
 
-// create a local task type so optional release time and deadline can be used safely
-type LlfTask = Task & {
-	releaseTime?: number;
-	deadline?: number;
-	isAperiodic?: boolean;
-};
-
 // create a type for each released job instance
 type Job = {
 	taskId: string;
@@ -17,29 +10,19 @@ type Job = {
 };
 
 export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
-
     const schedule: Schedule = [];
+    const activeJobs: Job[] = [];
+    const releasedTasks = new Set<string>();
 
-    const llfTasks = tasks as LlfTask[]; // cast the tasks so optional release time and deadline fields can be accessed
+    let deadlineMissed = false;
+    let missedTaskId: string | null = null;
+    let missedAtTime: number | null = null;
+    let currentTaskId: string | null = null;
 
-    const activeJobs: Job[] = []; // store all active released jobs here
-
-    const releasedTasks = new Set<string>(); // track which aperiodic tasks have already been released
-
-    let deadlineMissed = false; // flag to track if any deadline is missed
-
-    let missedTaskId: string | null = null; // store the ID of the task that missed its deadline
-
-    let missedAtTime: number | null = null; // store the time at which the deadline was missed
-
-    let currentTaskId: string | null = null; // store the currently running task for tie-breaking
-
-    // Main loop to generate the schedule (logic to be implemented)
+    // Main scheduling loop
     for (let time = 0; time < hyperperiod; time++) {
-        // Modify schedule to include the task that should be executed at time time based on scheduling
-
-        // release new jobs for any task that arrives at the current time
-        llfTasks.forEach((task, index) => {
+        // Release new jobs for any task that arrives at the current time
+        tasks.forEach((task, index) => {
             const releaseOffset = task.releaseTime ?? 0; // use 0 if the task does not define a release time
 
             const isAperiodicTask = task.isAperiodic === true || task.period === undefined; // treat the task as aperiodic if explicitly marked or if it has no period
