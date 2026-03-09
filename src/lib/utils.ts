@@ -34,14 +34,28 @@ export function lcm(a: number, b: number): number {
 export function calculateHyperperiod(tasks: Task[]): number {
 	if (tasks.length === 0) return 0;
 	
-	// Get all relevant periods/deadlines from tasks
-	const values = tasks.map((task) => {
-		// Use period for periodic tasks, deadline for aperiodic
-		return task.isAperiodic ? task.deadline : task.period;
-	});
+	// Calculate LCM of all periodic task periods
+	const periodicPeriods = tasks
+		.filter((task) => !task.isAperiodic && task.period)
+		.map((task) => task.period)
+		.filter((period): period is number => period !== undefined);
 	
-	// Calculate LCM of all values
-	return values.reduce((acc, val) => lcm(acc ?? 0, val ?? 0), values[0]) ?? 0;
+	const lcmOfPeriodic = periodicPeriods.length > 0 
+		? periodicPeriods.reduce((acc, val) => lcm(acc, val))
+		: 0;
+	
+	// Find the longest deadline among aperiodic tasks
+	const aperiodicDeadlines = tasks
+		.filter((task) => task.isAperiodic && task.deadline)
+		.map((task) => task.deadline)
+		.filter((deadline): deadline is number => deadline !== undefined);
+	
+	const maxAperiodicDeadline = aperiodicDeadlines.length > 0 
+		? Math.max(...aperiodicDeadlines)
+		: 0;
+	
+	// Return the higher value to cover both periodic pattern and aperiodic deadlines
+	return Math.max(lcmOfPeriodic, maxAperiodicDeadline);
 }
 
 
