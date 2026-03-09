@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TaskManager from '$lib/components/TaskManager.svelte';
 	import ScheduleTimeline from '$lib/components/ScheduleTimeline.svelte';
-	import type { Task, Schedule, SchedulingAlgorithm } from '$lib/types';
+	import type { Task, Schedule, SchedulingAlgorithm, ScheduleResult } from '$lib/types';
 	import { algorithmList, assignColorsToTasks, calculateHyperperiod } from '$lib/utils';
     
     import EarliestDeadlineFirst from '$lib/schedulers/edf';
@@ -15,12 +15,12 @@
     const hyperperiod = $derived(calculateHyperperiod(tasks));
 
 	// Compute schedule reactively based on tasks and algorithm
-	const schedule = $derived.by(() => {
+	const scheduleResult = $derived.by(() => {
 		if (tasks.length === 0 || hyperperiod === 0) {
-			return [];
+			return { schedule: [], isSchedulable: true };
 		}
 
-        let result: Schedule = [];
+        let result: ScheduleResult = { schedule: [], isSchedulable: true };
         switch (selectedAlgorithm.id) {
             case 'edf':
                 result = EarliestDeadlineFirst(tasks, hyperperiod);
@@ -69,9 +69,22 @@
 			</p>
 		</div>
 
+		{#if !scheduleResult.isSchedulable}
+			<div class="mb-6 px-4">
+				<div class="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 p-4 rounded">
+					<p class="text-red-800 dark:text-red-200 font-semibold">
+						Not Schedulable
+					</p>
+					<p class="text-red-700 dark:text-red-300 text-sm mt-1">
+						A task was released before completing its previous instance. This task set cannot be scheduled with the {selectedAlgorithm.name} algorithm.
+					</p>
+				</div>
+			</div>
+		{/if}
+
 		<div class="px-4">
 			<ScheduleTimeline 
-	            {schedule}
+	            schedule={scheduleResult.schedule}
 	            {tasks}
 	            {hyperperiod}
 	            {colorMap} />

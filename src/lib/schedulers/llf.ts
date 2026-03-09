@@ -1,4 +1,4 @@
-import type { Task, Schedule } from "$lib/types";
+import type { Task, Schedule, ScheduleResult } from "$lib/types";
 
 // create a local task type so optional release time and deadline can be used safely
 type LlfTask = Task & {
@@ -16,7 +16,7 @@ type Job = {
     taskOrder: number;
 };
 
-export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
+export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number): ScheduleResult {
 
     const schedule: Schedule = [];
 
@@ -190,10 +190,8 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
         }
     }
 
-    // optionally print missed deadline information for debugging
-    if (deadlineMissed) {
-        console.warn(`Deadline missed for task ${missedTaskId} at time ${missedAtTime}`);
-    }
-
-    return schedule;
+    return {
+        schedule,
+        isSchedulable: !deadlineMissed
+    };
 }

@@ -20,5 +20,4 @@ export type Schedule = {
 export type ScheduleResult = {
     schedule: Schedule;
     isSchedulable: boolean;
-    utilization: number;
 }

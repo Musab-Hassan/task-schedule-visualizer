@@ -1,6 +1,6 @@
-import type { Task, Schedule } from "$lib/types";
+import type { Task, Schedule, ScheduleResult } from "$lib/types";
 
-export default function EarliestDeadlineFirst(tasks: Task[], hyperperiod: number) {
+export default function EarliestDeadlineFirst(tasks: Task[], hyperperiod: number): ScheduleResult {
     
     const schedule: Schedule = [];
 
@@ -17,11 +17,17 @@ export default function EarliestDeadlineFirst(tasks: Task[], hyperperiod: number
         }
     });
 
+    let isSchedulable = true;
+
     for (let time = 0; time < hyperperiod; time++) {
         tasks.forEach((task) => {
             // Aperiodic tasks release once at their releaseTime
             if (task.isAperiodic) {
                 if (time === task.releaseTime) {
+                    // If task has remaining time when released, it's not schedulable
+                    if ((pending.get(task.id) ?? 0) > 0) {
+                        isSchedulable = false;
+                    }
                     pending.set(task.id, (pending.get(task.id) ?? 0) + task.executionTime);
                     arrivalTimes.set(task.id, time);
                     if (task.deadline !== undefined) {
@@ -35,6 +41,10 @@ export default function EarliestDeadlineFirst(tasks: Task[], hyperperiod: number
             if (task.period === undefined) return;
 
             if (time % task.period === 0) {
+                // If task has remaining time when released again, it's not schedulable
+                if ((pending.get(task.id) ?? 0) > 0) {
+                    isSchedulable = false;
+                }
                 pending.set(task.id, (pending.get(task.id) ?? 0) + task.executionTime);
                 arrivalTimes.set(task.id, time);
                 if (time > 0) {
@@ -43,6 +53,11 @@ export default function EarliestDeadlineFirst(tasks: Task[], hyperperiod: number
                 }
             }
         });
+
+        // Exit loop if not schedulable
+        if (!isSchedulable) {
+            break;
+        }
 
         let selectedTask: Task | null = null;
         let earliestDeadline = Infinity;
@@ -75,5 +90,39 @@ export default function EarliestDeadlineFirst(tasks: Task[], hyperperiod: number
         }
     }
 
-    return schedule;
+    // Check for any releases at the hyperperiod boundary
+    if (isSchedulable) {
+        tasks.forEach((task) => {
+            // Aperiodic tasks release once at their releaseTime
+            if (task.isAperiodic) {
+                if (hyperperiod === task.releaseTime) {
+                    // If task has remaining time when released, it's not schedulable
+                    if ((pending.get(task.id) ?? 0) > 0) {
+                        isSchedulable = false;
+                    }
+                }
+                return;
+            }
+
+            // Periodic tasks: period is required for release logic
+            if (task.period === undefined) return;
+
+            if (hyperperiod % task.period === 0) {
+                // If task has remaining time when released again, it's not schedulable
+                if ((pending.get(task.id) ?? 0) > 0) {
+                    isSchedulable = false;
+                }
+            }
+        });
+    }
+
+    // Fill remaining schedule with empty slots if loop was broken early
+    for (let time = schedule.length; time < hyperperiod; time++) {
+        schedule.push({ time, taskId: null });
+    }
+
+    return {
+        schedule,
+        isSchedulable
+    };
 }

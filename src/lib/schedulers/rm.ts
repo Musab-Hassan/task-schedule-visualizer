@@ -1,6 +1,6 @@
-import type { Task, Schedule } from "$lib/types";
+import type { Task, Schedule, ScheduleResult } from "$lib/types";
 
-export default function RateMonotonic(tasks: Task[], hyperperiod: number): Schedule {
+export default function RateMonotonic(tasks: Task[], hyperperiod: number): ScheduleResult {
 	
     const schedule: Schedule = [];
 
@@ -13,19 +13,28 @@ export default function RateMonotonic(tasks: Task[], hyperperiod: number): Sched
 		pending.set(task.id, 0);
 	});
 
+	let isSchedulable = true;
+
 	for (let time = 0; time < hyperperiod; time++) {
 		// Release new instances of tasks at their release times and period boundaries
 		periodicTasks.forEach((task) => {
 			// Check if this is a release time for the task
-			// First instance: releaseTime
-			// Subsequent instances: releaseTime + k*period
 			const isReleaseTime = time === task.releaseTime || 
 				(time > task.releaseTime && (time - task.releaseTime) % task.period! === 0);
 			
 			if (isReleaseTime) {
+				// If task has remaining time when released again, it's not schedulable
+				if ((pending.get(task.id) ?? 0) > 0) {
+					isSchedulable = false;
+				}
 				pending.set(task.id, (pending.get(task.id) ?? 0) + task.executionTime);
 			}
 		});
+
+		// Exit loop if not schedulable
+		if (!isSchedulable) {
+			break;
+		}
 
 		let selectedTask: Task | null = null;
 		let minPeriod = Infinity;
@@ -55,5 +64,31 @@ export default function RateMonotonic(tasks: Task[], hyperperiod: number): Sched
 		}
 	}
 
-	return schedule;
+	// Check for any releases at the hyperperiod boundary
+	if (isSchedulable) {
+		periodicTasks.forEach((task) => {
+			const isReleaseTime = hyperperiod === task.releaseTime || 
+				(hyperperiod > task.releaseTime && (hyperperiod - task.releaseTime) % task.period! === 0);
+			
+			if (isReleaseTime) {
+				// If task has remaining time when released again, it's not schedulable
+				if ((pending.get(task.id) ?? 0) > 0) {
+					isSchedulable = false;
+				}
+			}
+		});
+	}
+
+	// Fill remaining schedule with empty slots if loop was broken early
+	for (let time = schedule.length; time < hyperperiod; time++) {
+		schedule.push({
+			time,
+			taskId: null,
+		});
+	}
+
+	return {
+		schedule,
+		isSchedulable
+	};
 }
