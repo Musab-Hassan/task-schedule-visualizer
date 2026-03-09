@@ -4,6 +4,7 @@ import type { Task, Schedule } from "$lib/types";
 type LlfTask = Task & {
 	releaseTime?: number;
 	deadline?: number;
+	isAperiodic?: boolean;
 };
 
 // create a type for each released job instance
@@ -23,7 +24,7 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
 
     const activeJobs: Job[] = []; // store all active released jobs here
 
-    const releasedTasks = new Set<string>(); // track which tasks have already been released
+    const releasedTasks = new Set<string>(); // track which aperiodic tasks have already been released
 
     let deadlineMissed = false; // flag to track if any deadline is missed
 
@@ -41,24 +42,56 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number) {
         llfTasks.forEach((task, index) => {
             const releaseOffset = task.releaseTime ?? 0; // use 0 if the task does not define a release time
 
-            const absoluteDeadline = task.deadline ?? task.period; // use deadline as an absolute deadline
+            const isAperiodicTask = task.isAperiodic === true || task.period === undefined; // treat the task as aperiodic if explicitly marked or if it has no period
 
-            if (absoluteDeadline === undefined) {
-                throw new Error(`Task ${task.id} must have a deadline for LLF scheduling`);
+            // handle aperiodic tasks by releasing them only once
+            if(isAperiodicTask) {
+                const absoluteDeadline = task.deadline; // use deadline as an absolute deadline for aperiodic tasks
+
+                if (absoluteDeadline === undefined) {
+                    throw new Error(`Task ${task.id} must have a deadline for LLF scheduling`);
+                }
+
+                // release a new job if this aperiodic task arrives now
+                if(time === releaseOffset && !releasedTasks.has(task.id)) {
+                    // add released job to active jobs list
+                    activeJobs.push({
+                        taskId: task.id,
+                        releaseTime: time,
+                        absoluteDeadline,
+                        remainingExecution: task.executionTime,
+                        taskOrder: index, // store the original order of the task for tie-breaking
+                    });
+
+                    releasedTasks.add(task.id);
+                }
             }
 
-            // release a new job if this task arrives now
-            if(time === releaseOffset && !releasedTasks.has(task.id)) {
-                // add released job to active jobs list
-                activeJobs.push({
-                    taskId: task.id,
-                    releaseTime: time,
-                    absoluteDeadline,
-                    remainingExecution: task.executionTime,
-                    taskOrder: index, // store the original order of the task for tie-breaking
-                });
+            // handle periodic tasks by releasing a new job every period
+            else {
+                const period = task.period; // get the task period
 
-                releasedTasks.add(task.id);
+                const relativeDeadline = task.deadline ?? task.period; // use deadline if given, otherwise use period
+
+                if (period === undefined) {
+                    throw new Error(`Task ${task.id} must have a period for LLF scheduling`);
+                }
+
+                if (relativeDeadline === undefined) {
+                    throw new Error(`Task ${task.id} must have a deadline or period for LLF scheduling`);
+                }
+
+                // release a new job if this periodic task arrives now
+                if(time >= releaseOffset && (time - releaseOffset) % period === 0) {
+                    // add released job to active jobs list
+                    activeJobs.push({
+                        taskId: task.id,
+                        releaseTime: time,
+                        absoluteDeadline: time + relativeDeadline,
+                        remainingExecution: task.executionTime,
+                        taskOrder: index, // store the original order of the task for tie-breaking
+                    });
+                }
             }
         });
 
