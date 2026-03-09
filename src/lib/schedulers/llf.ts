@@ -28,10 +28,6 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number): Sc
 
     let deadlineMissed = false; // flag to track if any deadline is missed
 
-    let missedTaskId: string | null = null; // store the ID of the task that missed its deadline
-
-    let missedAtTime: number | null = null; // store the time at which the deadline was missed
-
     let currentTaskId: string | null = null; // store the currently running task for tie-breaking
 
     // Main loop to generate the schedule (logic to be implemented)
@@ -102,8 +98,6 @@ export default function LeastLaxityFirst(tasks: Task[], hyperperiod: number): Sc
                 // store the first missed deadline only once
                 if (!deadlineMissed) {
                     deadlineMissed = true;
-                    missedTaskId = job.taskId;
-                    missedAtTime = time;
                 }
             }
         }
